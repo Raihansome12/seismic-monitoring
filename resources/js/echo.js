@@ -1,9 +1,15 @@
 import Echo from 'laravel-echo';
-
 import Pusher from 'pusher-js';
 window.Pusher = Pusher;
 
-window.Echo = new Echo({
+// console.log('Initializing Echo with config:', {
+//     key: import.meta.env.VITE_REVERB_APP_KEY,
+//     wsHost: import.meta.env.VITE_REVERB_HOST,
+//     wsPort: import.meta.env.VITE_REVERB_PORT,
+//     scheme: import.meta.env.VITE_REVERB_SCHEME
+// });
+
+const echo = new Echo({
     broadcaster: 'reverb',
     key: import.meta.env.VITE_REVERB_APP_KEY,
     wsHost: import.meta.env.VITE_REVERB_HOST,
@@ -13,35 +19,48 @@ window.Echo = new Echo({
     enabledTransports: ['ws', 'wss'],
 });
 
-window.Echo.channel('gps-channel')
-    .listen('.NewGpsDataReceived', (e) => {
-        console.log("Received GPS event: ", e);
 
-        if (window.Livewire && typeof window.Livewire.emit === 'function') {
-            window.Livewire.emit('handleNewLocation', e);
-        } else {
-            console.warn('Livewire belum tersedia');
-        }
-    });
+// Add connection status logging
+echo.connector.pusher.connection.bind('connected', () => {
+    console.log('WebSocket connected successfully');
+});
 
+echo.connector.pusher.connection.bind('disconnected', () => {
+    console.log('WebSocket disconnected');
+});
 
-// function waitForLivewireAndEmit(data, retries = 10) {
-//     if (window.Livewire && typeof window.Livewire.emit === 'function') {
-//         console.log("Livewire siap, emit data GPS...");
-//         window.Livewire.emit('handleNewLocation', data);
-//     } else if (retries > 0) {
-//         console.warn("Livewire belum siap, retry dalam 500ms...");
-//         setTimeout(() => waitForLivewireAndEmit(data, retries - 1), 500);
-//     } else {
-//         console.error("Gagal emit karena Livewire tidak pernah siap.");
-//     }
-// }
+echo.connector.pusher.connection.bind('error', (error) => {
+    console.error('WebSocket error:', error);
+});
 
-// window.Echo.channel('gps-channel')
-//     .listen('.NewGpsDataReceived', (e) => {
-//         console.log("Received GPS event: ", e);
-//         waitForLivewireAndEmit(e);
-//     });
+window.Echo = echo;
+
+// Subscribe to the channel and log subscription
+// const channel = echo.channel('gps-channel');
+// console.log('Subscribing to gps-channel');
+
+// channel.listen('.NewGpsDataReceived', (e) => {
+//     console.log('New GPS data received on channel:', e);
+//     const locationData = {
+//         latitude: e.latitude,
+//         longitude: e.longitude,
+//         reading_times: e.reading_times
+//     };
+
+//     // if (window.Livewire && typeof window.Livewire.emit === 'function') {
+//     //     console.log('Livewire ready. Emitting handleNewLocation...');
+//     //     window.Livewire.emit('handleNewLocation', locationData);
+//     // } else {
+//     //     console.warn('Livewire belum siap, retry emit dalam 500ms...');
+//     //     const retryEmit = setInterval(() => {
+//     //         if (window.Livewire && typeof window.Livewire.emit === 'function') {
+//     //             console.log('Retry berhasil. Emitting handleNewLocation...');
+//     //             window.Livewire.emit('handleNewLocation', locationData);
+//     //             clearInterval(retryEmit);
+//     //         }
+//     //     }, 500);
+//     // }
+// });
 
 
 

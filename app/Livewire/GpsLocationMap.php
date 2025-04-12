@@ -13,7 +13,10 @@ class GpsLocationMap extends Component
     public $currentTime;
     public $city = 'Unknown';
 
-    protected $listeners = ['handleNewLocation'];
+    protected $listeners = [
+        'echo:gps-channel,.NewGpsDataReceived' => 'handleNewLocation',
+        'handleNewLocation' => 'handleNewLocation'
+    ];
 
     public function mount()
     {
@@ -36,15 +39,23 @@ class GpsLocationMap extends Component
     }
 
     public function handleNewLocation($payload)
-    {
-        $this->location = [
-            'latitude' => $payload['latitude'],
-            'longitude' => $payload['longitude'],
-        ];
-        $this->fetchCityName($payload['latitude'], $payload['longitude']);
-        $this->currentTime = now()->setTimezone('Asia/Jakarta')->format('H:i:s');
+    {      
+        try {
+            $this->location = [
+                'latitude' => $payload['latitude'],
+                'longitude' => $payload['longitude'],
+            ];
+            
+            Log::info('Updated location:', $this->location);
+            
+            $this->fetchCityName($payload['latitude'], $payload['longitude']);
+            $this->currentTime = now()->setTimezone('Asia/Jakarta')->format('H:i:s');
 
-        $this->dispatch('gps-location-updated', $this->location);
+            $this->dispatch('gps-location-updated', $this->location);
+            
+        } catch (\Exception $e) {
+            Log::error('Error in handleNewLocation: ' . $e->getMessage());
+        }
     }
 
     private function fetchCityName($latitude, $longitude)

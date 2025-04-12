@@ -24,6 +24,6 @@ session_start();
 
     <x-sidebar></x-sidebar>
 
-    @livewireScripts    
+    @livewireScripts
 </body>
 </html>
