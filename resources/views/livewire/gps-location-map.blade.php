@@ -10,14 +10,6 @@
     <div wire:ignore>
         <div id="map" class="w-full h-48 rounded-lg"></div>
     </div>
-
-    {{-- <div>      
-        <div class="bg-white rounded-lg shadow p-4">
-            <p><strong>Latitude:</strong> {{ $location['latitude'] ?? '-' }}</p>
-            <p><strong>Longitude:</strong> {{ $location['longitude'] ?? '-' }}</p>
-            <p><strong>Waktu Lokal:</strong> {{ $currentTime ?? '-' }}</p>
-        </div>
-    </div> --}}
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"

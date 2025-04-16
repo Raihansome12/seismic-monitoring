@@ -33,34 +33,13 @@ echo.connector.pusher.connection.bind('error', (error) => {
     console.error('WebSocket error:', error);
 });
 
+// Test channel subscription
+echo.channel('seismic-data')
+    .listen('NewSeismicDataReceived', (e) => {
+        console.log('Received seismic data event:', e);
+    });
+
 window.Echo = echo;
-
-// Subscribe to the channel and log subscription
-// const channel = echo.channel('gps-channel');
-// console.log('Subscribing to gps-channel');
-
-// channel.listen('.NewGpsDataReceived', (e) => {
-//     console.log('New GPS data received on channel:', e);
-//     const locationData = {
-//         latitude: e.latitude,
-//         longitude: e.longitude,
-//         reading_times: e.reading_times
-//     };
-
-//     // if (window.Livewire && typeof window.Livewire.emit === 'function') {
-//     //     console.log('Livewire ready. Emitting handleNewLocation...');
-//     //     window.Livewire.emit('handleNewLocation', locationData);
-//     // } else {
-//     //     console.warn('Livewire belum siap, retry emit dalam 500ms...');
-//     //     const retryEmit = setInterval(() => {
-//     //         if (window.Livewire && typeof window.Livewire.emit === 'function') {
-//     //             console.log('Retry berhasil. Emitting handleNewLocation...');
-//     //             window.Livewire.emit('handleNewLocation', locationData);
-//     //             clearInterval(retryEmit);
-//     //         }
-//     //     }, 500);
-//     // }
-// });
 
 
 

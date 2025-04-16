@@ -3,10 +3,6 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use App\Services\SeismicCalculationService;
-
-
-
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -15,7 +11,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-
+        //
     }
 
     /**
@@ -25,4 +21,4 @@ class AppServiceProvider extends ServiceProvider
     {
         //
     }
-}
+} 

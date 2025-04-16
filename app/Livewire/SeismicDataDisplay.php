@@ -2,38 +2,17 @@
 
 namespace App\Livewire;
 
+use Carbon\Carbon;
 use Livewire\Component;
 use App\Models\SeismicReading;
+use Illuminate\Support\Facades\Log;
 
 class SeismicDataDisplay extends Component
 {
-    public $readings = [];
-    public $maxReadings = 100;
-
-    protected $listeners = ['echo:seismic-data,NewSeismicDataReceived' => 'handleNewReading'];
-
-    public function mount()
-    {
-        // Load initial data
-        $this->readings = SeismicReading::latest('reading_times')
-            ->take($this->maxReadings)
-            ->orderBy('reading_times')
-            ->get()
-            ->toArray();
-    }
-
-    public function handleNewReading($payload)
-    {
-        // Add new reading to the array
-        $this->readings[] = $payload['reading'];
-        
-        // Keep only the latest readings
-        if (count($this->readings) > $this->maxReadings) {
-            array_shift($this->readings);
-        }
-        
-        $this->dispatch('seismic-data-updated', $payload['reading']);
-    }
+    protected $listeners = [
+        'echo:seismic-data,NewSeismicDataReceived' => 'handleNewSeismicData',
+        'refresh' => '$refresh'
+    ];
 
     public function render()
     {

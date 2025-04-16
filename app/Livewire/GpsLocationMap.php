@@ -46,7 +46,7 @@ class GpsLocationMap extends Component
                 'longitude' => $payload['longitude'],
             ];
             
-            Log::info('Updated location:', $this->location);
+            // Log::info('Updated location:', $this->location);
             
             $this->fetchCityName($payload['latitude'], $payload['longitude']);
             $this->currentTime = now()->setTimezone('Asia/Jakarta')->format('H:i:s');

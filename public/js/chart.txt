@@ -1,10 +1,124 @@
 <div class="mt-6 border border-gray-200 rounded-lg p-6 bg-gray-50">    
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-    <canvas id="seismicChart" width="100%" height="250"></canvas>
+    <canvas id="seismicChart" width="100%" height="400"></canvas>
 
     <script>
         const MAX_POINTS = 1000;
-        const SPS = 50; // Sample per second
+        // const CHUNK_SIZE = 500;
+        // const TOTAL_INDEX = MAX_POINTS / CHUNK_SIZE;
+    
+        let chart = null;
+        let dataBuffer = Array(MAX_POINTS).fill(0); // Initial y = 0
+        let indexBuffer = Array.from({ length: MAX_POINTS }, (_, i) => i); // x = 0 - 29999
+        let nextInsertIndex = MAX_POINTS; // Index akan terus naik
+    
+        function initChart() {
+            const ctx = document.getElementById('seismicChart').getContext('2d');
+    
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label: 'Seismic Waveform',
+                        data: indexBuffer.map((x, i) => ({ x, y: dataBuffer[i] })),
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1,
+                        pointRadius: 0,
+                        borderWidth: 1,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 50 // smoother update
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            min: 0,
+                            max: MAX_POINTS,
+                            title: {
+                                display: true,
+                                text: 'Sample Index'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'ADC Counts'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+    
+            console.log('Chart initialized with 30k points');
+            setupWebSocket();
+        }
+    
+        function setupWebSocket() {
+            window.Echo.channel('seismic-data')
+                .listen('.NewSeismicDataReceived', (e) => {
+                    if (e.reading && e.reading.adc_counts) {
+                        try {
+                            const newDataChunk = JSON.parse(e.reading.adc_counts);
+    
+                            if (Array.isArray(newDataChunk)) {
+                                for (let i = 0; i < newDataChunk.length; i++) {
+                                    dataBuffer.push(newDataChunk[i]);
+                                    indexBuffer.push(nextInsertIndex++);
+                                }
+    
+                                // Keep last MAX_POINTS only
+                                if (dataBuffer.length > MAX_POINTS) {
+                                    dataBuffer = dataBuffer.slice(-MAX_POINTS);
+                                    indexBuffer = indexBuffer.slice(-MAX_POINTS);
+                                }
+    
+                                updateChart();
+                            }
+                        } catch (err) {
+                            console.error("Error parsing adc_counts:", err);
+                        }
+                    }
+                });
+        }
+    
+        function updateChart() {
+            if (!chart) return;
+    
+            chart.data.datasets[0].data = dataBuffer.map((y, i) => ({
+                x: indexBuffer[i],
+                y: y
+            }));
+    
+            // Update x-range for scroll effect
+            chart.options.scales.x.min = indexBuffer[0];
+            chart.options.scales.x.max = indexBuffer[indexBuffer.length - 1];
+    
+            chart.update('none');
+        }
+    
+        document.addEventListener('DOMContentLoaded', function () {
+            initChart();
+        });
+    </script>
+</div>
+
+////////////////////////////////////////////////////////////////////////////////////
+
+<div class="mt-6 border border-gray-200 rounded-lg p-6 bg-gray-50">    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <canvas id="seismicChart" width="100%" height="250"></canvas>
+
+    <script>
+        const MAX_POINTS = 500;
+        const SPS = 5; // Sample per second
         const TICK_INTERVAL_SECONDS = 10;
 
         let chart = null;
@@ -78,7 +192,7 @@
                 }
             });
 
-            //console.log('Chart initialized with 3000 points');
+            console.log('Chart initialized with 3000 points');
             setupWebSocket();
         }
 
@@ -135,8 +249,4 @@
             initChart();
         });
     </script>
-    
-    
-    
-    
 </div>
