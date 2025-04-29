@@ -8,7 +8,7 @@
 
     <!-- Container Peta -->
     <div wire:ignore>
-        <div id="map" class="w-full h-48 rounded-lg"></div>
+        <div id="map" class="w-full h-50 rounded-lg"></div>
     </div>
     
     <!-- Leaflet CSS -->

@@ -35,26 +35,24 @@ class GroundMotionParameters extends Component
     private function updateWithLatestSecond()
     {
         try {
-            // Get all ground motion readings from the last second
-            $oneSecondAgo = Carbon::now()->subSecond();
-            $recentReadings = GroundMotion::where('created_at', '>=', $oneSecondAgo)
+            $SecondsAgo = Carbon::now()->subSeconds(5);
+    
+            $this->acceleration = GroundMotion::where('created_at', '>=', $SecondsAgo)->max('acceleration');
+            $this->velocity = GroundMotion::where('created_at', '>=', $SecondsAgo)->max('velocity');
+            $this->displacement = GroundMotion::where('created_at', '>=', $SecondsAgo)->max('displacement');
+            
+            // Optionally, set last update time
+            $lastUpdateTime = GroundMotion::where('created_at', '>=', $SecondsAgo)
                 ->latest('created_at')
-                ->get();
-
-            if ($recentReadings->isNotEmpty()) {
-                // Calculate averages for the last second
-                $this->acceleration = $recentReadings->avg('acceleration');
-                $this->velocity = $recentReadings->avg('velocity');
-                $this->displacement = $recentReadings->avg('displacement');
-                $this->lastUpdate = $recentReadings->first()->created_at;
-                
-                Log::info('Ground motion parameters updated with 1-second average', [
-                    'readings_count' => $recentReadings->count(),
-                    'acceleration' => $this->acceleration,
-                    'velocity' => $this->velocity,
-                    'displacement' => $this->displacement
-                ]);
+                ->value('created_at');
+            
+            // Convert UTC to UTC+7 (Asia/Jakarta)
+            if ($lastUpdateTime) {
+                $this->lastUpdate = Carbon::parse($lastUpdateTime)->setTimezone('Asia/Jakarta')->format('Y-m-d H:i:s');
+            } else {
+                $this->lastUpdate = null;
             }
+            
         } catch (\Exception $e) {
             Log::error('Error updating ground motion parameters: ' . $e->getMessage());
         }

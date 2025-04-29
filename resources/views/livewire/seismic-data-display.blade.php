@@ -3,7 +3,7 @@
     <canvas id="seismicChart" width="100%" height="250"></canvas>
 
     <script>
-        const MAX_POINTS = 1000;
+        const MAX_POINTS = 30000;
         const SPS = 50; // Sample per second
         const TICK_INTERVAL_SECONDS = 10;
 
@@ -78,7 +78,7 @@
                 }
             });
 
-            //console.log('Chart initialized with 3000 points');
+            // console.log('Chart initialized with 3000 points');
             setupWebSocket();
         }
 
@@ -135,8 +135,4 @@
             initChart();
         });
     </script>
-    
-    
-    
-    
 </div>

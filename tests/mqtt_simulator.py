@@ -77,8 +77,8 @@ def main():
         print("Press Ctrl+C to stop")
         
         while True:
-            # Generate simulated data (5 points)
-            adc_counts = generate_seismic_data(samples=5)
+            # Generate simulated data
+            adc_counts = generate_seismic_data(samples=25)
             reading_times = datetime.now().isoformat()
             
             # Create payload
@@ -91,8 +91,8 @@ def main():
             client.publish(TOPIC, json.dumps(payload))
             print(f"Published data at {reading_times}: {adc_counts}")
             
-            # Wait for next payload (100ms = 0.1 seconds)
-            time.sleep(0.1)
+            # Wait for next payload (array 25 data (50 sos) = 500ms)
+            time.sleep(0.5)
             
     except KeyboardInterrupt:
         print("\nStopping simulator...")

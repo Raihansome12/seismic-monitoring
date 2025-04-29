@@ -2,13 +2,14 @@
 
 namespace App\Services;
 
+use Carbon\Carbon;
+use App\Models\GpsLocation;
+use App\Models\GroundMotion;
 use App\Models\SeismicReading;
 use PhpMqtt\Client\Facades\MQTT;
 use App\Events\NewGpsDataReceived;
 use Illuminate\Support\Facades\Log;
 use App\Events\NewSeismicDataReceived;
-use App\Models\GpsLocation;
-use App\Models\GroundMotion;
 use App\Services\SeismicCalculationService;
 
 class MqttService
@@ -62,9 +63,9 @@ class MqttService
             
             GroundMotion::create([
                 'seismic_reading_id' => $reading->id,
-                'acceleration' => $calculations['avg_acceleration'],
-                'velocity' => $calculations['avg_velocity'],
-                'displacement' => $calculations['avg_displacement'],
+                'acceleration' => $calculations['pga'],
+                'velocity' => $calculations['pgv'],
+                'displacement' => $calculations['pgd'],
             ]);
             
             // Broadcast event to WebSocket

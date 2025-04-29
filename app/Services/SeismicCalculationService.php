@@ -29,29 +29,24 @@ class SeismicCalculationService
         // Hitung displacement (integrasi kecepatan)
         $displacements = $this->integrate($velocities, self::DT);
 
-        // Hitung rata-rata
-        $avgAcceleration = $this->calculateAverage($accelerations);
-        $avgVelocity = $this->calculateAverage($velocities);
-        $avgDisplacement = $this->calculateAverage($displacements);
+        // Hitung nilai puncak
+        $pga = $this->calculatePeak($accelerations);
+        $pgv = $this->calculatePeak($velocities);
+        $pgd = $this->calculatePeak($displacements);
 
     return [
         'acceleration' => $accelerations,
         'velocity' => $velocities,
         'displacement' => $displacements,
-        'avg_acceleration' => $avgAcceleration,
-        'avg_velocity' => $avgVelocity,
-        'avg_displacement' => $avgDisplacement
+        'pga' => $pga,
+        'pgv' => $pgv,
+        'pgd' => $pgd,
         ];
-    }
-
-    private function calculateAverage(array $values): float
-    {
-        return count($values) > 0 ? array_sum($values) / count($values) : 0;
     }
 
     private function adcToVoltage(int $adcCount): float
     {
-        return ($adcCount / self::ADC_RESOLUTION) * (2 * self::V_REF);
+        return ($adcCount / (self::ADC_RESOLUTION / 2)) * self::V_REF;
     }
 
     private function voltageToVelocity(float $voltage): float
@@ -61,8 +56,8 @@ class SeismicCalculationService
 
     private function differentiate(array $values, float $dt): array
     {
-        $derivative = [];
         $n = count($values);
+        $derivative = [];
 
         for ($i = 0; $i < $n; $i++) {
             if ($i == 0) {
@@ -88,5 +83,10 @@ class SeismicCalculationService
         }
 
         return $integral;
+    }
+
+    private function calculatePeak(array $values): float
+    {
+        return max(array_map('abs', $values));
     }
 }
