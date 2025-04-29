@@ -173,7 +173,7 @@
 
         // Clean up on component disconnect
         document.addEventListener('livewire:disconnected', () => {
-            // console.log('Component disconnected - cleaning up');
+            console.log('Component disconnected - cleaning up');
             if (map) {
                 map.remove();
                 map = null;

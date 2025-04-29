@@ -15,6 +15,50 @@
         let baseTime = null;
         let firstDataIndex = null;
 
+        // Initialize with historical data from PHP
+        const initialData = @json($initialData);
+        const initialReadingTimes = @json($initialReadingTimes);
+        
+        function initializeWithHistoricalData() {
+            if (initialData && initialData.length > 0) {
+                // Set the base time from the last reading time
+                if (initialReadingTimes && initialReadingTimes.length > 0) {
+                    const lastReadingTime = new Date(initialReadingTimes[initialReadingTimes.length - 1]);
+                    baseTime = lastReadingTime.getTime();
+                    
+                    // Calculate how many seconds of data we have
+                    const secondsOfData = initialData.length / SPS;
+                    
+                    // Set the first data index to maintain proper time alignment
+                    firstDataIndex = MAX_POINTS - initialData.length;
+                    
+                    // Initialize the data buffers with zeros first
+                    dataBuffer = Array(MAX_POINTS).fill(0);
+                    indexBuffer = Array.from({ length: MAX_POINTS }, (_, i) => i);
+                    
+                    // Place the historical data at the end of the buffer
+                    for (let i = 0; i < initialData.length; i++) {
+                        dataBuffer[MAX_POINTS - initialData.length + i] = initialData[i];
+                    }
+                    
+                    // Set the next insert index to continue from where we left off
+                    nextInsertIndex = MAX_POINTS;
+                    
+                    // Enable ticks since we have data
+                    showTicks = true;
+                    
+                    console.log(`Initialized with ${initialData.length} historical data points at the end of buffer`);
+                    console.log(`First data index: ${firstDataIndex}, Base time: ${new Date(baseTime).toISOString()}`);
+                }
+            } else {
+                // If no historical data, initialize with zeros
+                dataBuffer = Array(MAX_POINTS).fill(0);
+                indexBuffer = Array.from({ length: MAX_POINTS }, (_, i) => i);
+                nextInsertIndex = MAX_POINTS;
+                console.log('No historical data available, initialized with zeros');
+            }
+        }
+
         function initChart() {
             const ctx = document.getElementById('seismicChart').getContext('2d');
 
@@ -47,9 +91,10 @@
                                 text: 'Time (HH:mm:ss)'
                             },
                             ticks: {
-                                display: () => showTicks,
+                                display: true, // Always display ticks
                                 callback: function (value) {
-                                    if (!showTicks || baseTime === null || firstDataIndex === null) return '';
+                                    // Only show time labels if we have valid time data
+                                    if (baseTime === null || firstDataIndex === null) return '';
 
                                     const secondsFromStart = (value - firstDataIndex) / SPS;
 
@@ -78,7 +123,7 @@
                 }
             });
 
-            // console.log('Chart initialized with 3000 points');
+            console.log('Chart initialized');
             setupWebSocket();
         }
 
@@ -132,6 +177,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', function () {
+            initializeWithHistoricalData();
             initChart();
         });
     </script>
