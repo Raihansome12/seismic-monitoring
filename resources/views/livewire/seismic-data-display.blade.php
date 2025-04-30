@@ -3,64 +3,67 @@
     <canvas id="seismicChart" width="100%" height="250"></canvas>
 
     <script>
-        const MAX_POINTS = 30000;
-        const SPS = 50; // Sample per second
-        const TICK_INTERVAL_SECONDS = 10;
+        const MAX_POINTS = 3000;
+        const SPS = 50; // Sample per second (25 data points setiap 0,5 detik = 50 SPS)
+        const POINTS_PER_BATCH = 25; // Jumlah data point per batch dari sensor
 
-        let chart = null;
-        let dataBuffer = Array(MAX_POINTS).fill(0);
-        let indexBuffer = Array.from({ length: MAX_POINTS }, (_, i) => i);
-        let nextInsertIndex = MAX_POINTS;
-        let showTicks = false;
-        let baseTime = null;
-        let firstDataIndex = null;
-
-        // Initialize with historical data from PHP
+        // Initialize with data from the database
         const initialData = @json($initialData);
         const initialReadingTimes = @json($initialReadingTimes);
         
-        function initializeWithHistoricalData() {
-            if (initialData && initialData.length > 0) {
-                // Set the base time from the last reading time
-                if (initialReadingTimes && initialReadingTimes.length > 0) {
-                    const lastReadingTime = new Date(initialReadingTimes[initialReadingTimes.length - 1]);
-                    baseTime = lastReadingTime.getTime();
-                    
-                    // Calculate how many seconds of data we have
-                    const secondsOfData = initialData.length / SPS;
-                    
-                    // Set the first data index to maintain proper time alignment
-                    firstDataIndex = MAX_POINTS - initialData.length;
-                    
-                    // Initialize the data buffers with zeros first
-                    dataBuffer = Array(MAX_POINTS).fill(0);
-                    indexBuffer = Array.from({ length: MAX_POINTS }, (_, i) => i);
-                    
-                    // Place the historical data at the end of the buffer
-                    for (let i = 0; i < initialData.length; i++) {
-                        dataBuffer[MAX_POINTS - initialData.length + i] = initialData[i];
-                    }
-                    
-                    // Set the next insert index to continue from where we left off
-                    nextInsertIndex = MAX_POINTS;
-                    
-                    // Enable ticks since we have data
-                    showTicks = true;
-                    
-                    console.log(`Initialized with ${initialData.length} historical data points at the end of buffer`);
-                    console.log(`First data index: ${firstDataIndex}, Base time: ${new Date(baseTime).toISOString()}`);
-                }
-            } else {
-                // If no historical data, initialize with zeros
-                dataBuffer = Array(MAX_POINTS).fill(0);
-                indexBuffer = Array.from({ length: MAX_POINTS }, (_, i) => i);
-                nextInsertIndex = MAX_POINTS;
-                console.log('No historical data available, initialized with zeros');
-            }
-        }
+        let chart = null;
+        let dataBuffer = [];
+        let indexBuffer = [];
+        let nextInsertIndex = 0;
+        let baseTime = null;
+        let firstDataIndex = null;
+        let isInitialized = false;
+        let lastUpdateTime = null;
+        let hasHistoricalData = false;
+        let totalDataPoints = 0; // Track total data points received
 
         function initChart() {
             const ctx = document.getElementById('seismicChart').getContext('2d');
+
+            // Initialize data buffers with historical data if available
+            if (initialData && initialData.length > 0) {
+                console.log(`Initializing chart with ${initialData.length} historical data points`);
+                
+                // Validasi data historis
+                if (Array.isArray(initialData) && initialData.every(item => typeof item === 'number')) {
+                    // Inisialisasi buffer dengan MAX_POINTS
+                    dataBuffer = Array(MAX_POINTS).fill(0);
+                    indexBuffer = Array.from({ length: MAX_POINTS }, (_, i) => i);
+                    
+                    // Track total data points
+                    totalDataPoints = initialData.length;
+                    
+                    // Masukkan data historis ke buffer, mulai dari kanan
+                    // If data exceeds MAX_POINTS, only take the most recent MAX_POINTS
+                    const startIndex = Math.max(0, MAX_POINTS - initialData.length);
+                    const dataToUse = initialData.length > MAX_POINTS 
+                        ? initialData.slice(initialData.length - MAX_POINTS) 
+                        : initialData;
+                    
+                    for (let i = 0; i < dataToUse.length; i++) {
+                        dataBuffer[startIndex + i] = dataToUse[i];
+                    }
+                    
+                    nextInsertIndex = MAX_POINTS;
+                    
+                    isInitialized = true;
+                    hasHistoricalData = true;
+                    lastUpdateTime = Date.now();
+                    
+                    console.log(`Initialized with ${dataToUse.length} points, total data points: ${totalDataPoints}`);
+                } else {
+                    console.warn('Historical data is not in the expected format, initializing with zeros');
+                    initializeWithZeros();
+                }
+            } else {
+                console.log('No historical data available, initializing with zeros');
+                initializeWithZeros();
+            }
 
             chart = new Chart(ctx, {
                 type: 'line',
@@ -87,27 +90,10 @@
                             min: 0,
                             max: MAX_POINTS,
                             title: {
-                                display: true,
-                                text: 'Time (HH:mm:ss)'
+                                display: false
                             },
                             ticks: {
-                                display: true, // Always display ticks
-                                callback: function (value) {
-                                    // Only show time labels if we have valid time data
-                                    if (baseTime === null || firstDataIndex === null) return '';
-
-                                    const secondsFromStart = (value - firstDataIndex) / SPS;
-
-                                    if (secondsFromStart < 0 || secondsFromStart % TICK_INTERVAL_SECONDS !== 0) return '';
-
-                                    const timestamp = baseTime + secondsFromStart * 1000;
-                                    const date = new Date(timestamp);
-                                    const h = String(date.getHours()).padStart(2, '0');
-                                    const m = String(date.getMinutes()).padStart(2, '0');
-                                    const s = String(date.getSeconds()).padStart(2, '0');
-
-                                    return `${h}:${m}:${s}`;
-                                }
+                                display: false
                             }
                         },
                         y: {
@@ -123,8 +109,15 @@
                 }
             });
 
-            console.log('Chart initialized');
             setupWebSocket();
+        }
+
+        function initializeWithZeros() {
+            dataBuffer = Array(MAX_POINTS).fill(0);
+            indexBuffer = Array.from({ length: MAX_POINTS }, (_, i) => i);
+            nextInsertIndex = MAX_POINTS;
+            lastUpdateTime = Date.now();
+            totalDataPoints = 0;
         }
 
         function setupWebSocket() {
@@ -134,26 +127,31 @@
                         try {
                             const newDataChunk = JSON.parse(e.reading.adc_counts);
 
-                            if (Array.isArray(newDataChunk)) {
-                                // Aktifkan tick setelah data pertama
-                                if (!showTicks) {
-                                    showTicks = true;
+                            if (Array.isArray(newDataChunk) && newDataChunk.length === POINTS_PER_BATCH) {
+                                // Aktifkan setelah data pertama jika belum diinisialisasi
+                                if (!isInitialized) {
                                     baseTime = Date.now();
-                                    firstDataIndex = nextInsertIndex;
+                                    firstDataIndex = 0;
+                                    isInitialized = true;
+                                    console.log('Chart initialized with real-time data');
                                 }
 
-                                for (let i = 0; i < newDataChunk.length; i++) {
-                                    dataBuffer.push(newDataChunk[i]);
-                                    indexBuffer.push(nextInsertIndex++);
-                                }
-
-                                // Potong agar tetap MAX_POINTS
-                                if (dataBuffer.length > MAX_POINTS) {
-                                    dataBuffer = dataBuffer.slice(-MAX_POINTS);
-                                    indexBuffer = indexBuffer.slice(-MAX_POINTS);
-                                }
-
+                                // Update total data points
+                                totalDataPoints += newDataChunk.length;
+                                
+                                // Geser buffer ke kiri dan tambahkan data baru
+                                dataBuffer = [...dataBuffer.slice(POINTS_PER_BATCH), ...newDataChunk];
+                                
+                                // Update chart dan catat waktu update
                                 updateChart();
+                                lastUpdateTime = Date.now();
+                                
+                                // Log progress periodically
+                                if (totalDataPoints % 1000 === 0) {
+                                    console.log(`Total data points processed: ${totalDataPoints}`);
+                                }
+                            } else {
+                                console.warn(`Received unexpected data format: ${newDataChunk.length} points (expected ${POINTS_PER_BATCH})`);
                             }
                         } catch (err) {
                             console.error("Error parsing adc_counts:", err);
@@ -165,19 +163,15 @@
         function updateChart() {
             if (!chart) return;
 
-            chart.data.datasets[0].data = dataBuffer.map((y, i) => ({
-                x: indexBuffer[i],
-                y: y
+            chart.data.datasets[0].data = indexBuffer.map((x, i) => ({
+                x: x,
+                y: dataBuffer[i]
             }));
-
-            chart.options.scales.x.min = indexBuffer[0];
-            chart.options.scales.x.max = indexBuffer[indexBuffer.length - 1];
 
             chart.update('none');
         }
 
         document.addEventListener('DOMContentLoaded', function () {
-            initializeWithHistoricalData();
             initChart();
         });
     </script>

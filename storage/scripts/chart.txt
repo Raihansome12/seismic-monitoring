@@ -5,7 +5,7 @@ Historical Data
     <canvas id="seismicChart" width="100%" height="250"></canvas>
 
     <script>
-        const MAX_POINTS = 30000;
+        const MAX_POINTS = 3000;
         const SPS = 50; // Sample per second (25 data points setiap 0,5 detik = 50 SPS)
         const POINTS_PER_BATCH = 25; // Jumlah data point per batch dari sensor
 
@@ -22,6 +22,7 @@ Historical Data
         let isInitialized = false;
         let lastUpdateTime = null;
         let hasHistoricalData = false;
+        let totalDataPoints = 0; // Track total data points received
 
         function initChart() {
             const ctx = document.getElementById('seismicChart').getContext('2d');
@@ -36,10 +37,18 @@ Historical Data
                     dataBuffer = Array(MAX_POINTS).fill(0);
                     indexBuffer = Array.from({ length: MAX_POINTS }, (_, i) => i);
                     
+                    // Track total data points
+                    totalDataPoints = initialData.length;
+                    
                     // Masukkan data historis ke buffer, mulai dari kanan
+                    // If data exceeds MAX_POINTS, only take the most recent MAX_POINTS
                     const startIndex = Math.max(0, MAX_POINTS - initialData.length);
-                    for (let i = 0; i < initialData.length; i++) {
-                        dataBuffer[startIndex + i] = initialData[i];
+                    const dataToUse = initialData.length > MAX_POINTS 
+                        ? initialData.slice(initialData.length - MAX_POINTS) 
+                        : initialData;
+                    
+                    for (let i = 0; i < dataToUse.length; i++) {
+                        dataBuffer[startIndex + i] = dataToUse[i];
                     }
                     
                     nextInsertIndex = MAX_POINTS;
@@ -47,6 +56,8 @@ Historical Data
                     isInitialized = true;
                     hasHistoricalData = true;
                     lastUpdateTime = Date.now();
+                    
+                    console.log(`Initialized with ${dataToUse.length} points, total data points: ${totalDataPoints}`);
                 } else {
                     console.warn('Historical data is not in the expected format, initializing with zeros');
                     initializeWithZeros();
@@ -108,6 +119,7 @@ Historical Data
             indexBuffer = Array.from({ length: MAX_POINTS }, (_, i) => i);
             nextInsertIndex = MAX_POINTS;
             lastUpdateTime = Date.now();
+            totalDataPoints = 0;
         }
 
         function setupWebSocket() {
@@ -126,12 +138,20 @@ Historical Data
                                     console.log('Chart initialized with real-time data');
                                 }
 
+                                // Update total data points
+                                totalDataPoints += newDataChunk.length;
+                                
                                 // Geser buffer ke kiri dan tambahkan data baru
                                 dataBuffer = [...dataBuffer.slice(POINTS_PER_BATCH), ...newDataChunk];
                                 
                                 // Update chart dan catat waktu update
                                 updateChart();
                                 lastUpdateTime = Date.now();
+                                
+                                // Log progress periodically
+                                if (totalDataPoints % 1000 === 0) {
+                                    console.log(`Total data points processed: ${totalDataPoints}`);
+                                }
                             } else {
                                 console.warn(`Received unexpected data format: ${newDataChunk.length} points (expected ${POINTS_PER_BATCH})`);
                             }
