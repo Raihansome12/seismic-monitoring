@@ -6,13 +6,70 @@
     <canvas id="seismicChart" width="100%" height="250"></canvas>
 
     <script>
-        const initialChartData = @json($initialData);
-
+        // Define constants first
         const SPS = 50;
-        const DURATION = 60;
+        const DURATION = 30;
         const REFRESH_RATE = 50;
         const TIME_STEP = 1000 / SPS;
         const DATA_TIMEOUT = 1000;
+
+        // Get initial data from Livewire component
+        const initialReadings = @json($readings);
+        
+        // Process initial readings into chart data format
+        const initialData = [];
+        let previousTimestamp = null;
+        let currentTimestamp = 0;
+        
+        // Sort readings by timestamp to ensure correct order
+        initialReadings.sort((a, b) => a.timestamp - b.timestamp);
+        
+        initialReadings.forEach(reading => {
+            const timestamp = reading.timestamp;
+            
+            // Check if there's a gap between readings
+            if (previousTimestamp !== null) {
+                const timeDiff = timestamp - previousTimestamp;
+                
+                // If gap is significant (more than twice the expected time between batches)
+                // Note: Adjust this threshold as needed based on your data frequency
+                const expectedBatchTime = TIME_STEP * 20; // Assuming around 20 samples per batch
+                if (timeDiff > expectedBatchTime * 2) {
+                    // Calculate how many zero points to add to represent the gap
+                    const gapPoints = Math.floor(timeDiff / TIME_STEP) - 1;
+                    
+                    // Add zero points to represent the gap
+                    for (let i = 1; i <= gapPoints; i++) {
+                        initialData.push({
+                            x: previousTimestamp + (i * TIME_STEP),
+                            y: 0
+                        });
+                    }
+                    
+                    // Update current timestamp to account for the gap
+                    currentTimestamp = timestamp;
+                }
+            }
+            
+            if (Array.isArray(reading.adc_counts) && reading.adc_counts.length > 0) {
+                // Set initial timestamp if this is the first reading
+                if (previousTimestamp === null) {
+                    currentTimestamp = timestamp;
+                }
+                
+                // Add each data point
+                reading.adc_counts.forEach((value, index) => {
+                    initialData.push({
+                        x: currentTimestamp + (index * TIME_STEP),
+                        y: value
+                    });
+                });
+                
+                // Update timestamps
+                currentTimestamp += reading.adc_counts.length * TIME_STEP;
+                previousTimestamp = timestamp;
+            }
+        });
 
         let chart = null;
         let lastTimestamp;
@@ -29,7 +86,7 @@
                 data: {
                     datasets: [{
                         label: 'Seismic Waveform',
-                        data: initialChartData.length ? initialChartData : [],
+                        data: initialData.length ? initialData : [],
                         borderColor: 'rgb(75, 192, 192)',
                         tension: 0.1,
                         pointRadius: 0,
@@ -40,6 +97,9 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    animation: {
+                        duration: 0,
+                    },
                     plugins: {
                         legend: { display: false }
                     },
@@ -74,8 +134,8 @@
                 },
             });
 
-            if (initialChartData.length) {
-                const lastPoint = initialChartData[initialChartData.length - 1];
+            if (initialData.length) {
+                const lastPoint = initialData[initialData.length - 1];
                 lastTimestamp = lastPoint.x;
                 lastDataReceivedTime = lastPoint.x;
                 dataStarted = true;

@@ -69,7 +69,12 @@ class MqttService
             ]);
             
             // Broadcast event to WebSocket
+            Log::info('Broadcasting new seismic data event', [
+                'reading_id' => $reading->id,
+                'timestamp' => $reading->reading_times
+            ]);
             broadcast(new NewSeismicDataReceived($reading))->toOthers();
+            Log::info('Seismic data event broadcast completed');
         } catch (\Exception $e) {
             Log::error('Error processing geophone data: ' . $e->getMessage());
         }
