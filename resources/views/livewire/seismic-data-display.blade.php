@@ -1,76 +1,47 @@
 <div class="mt-6 border border-gray-200 rounded-lg p-6 bg-gray-50">    
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-streaming@latest/dist/chartjs-plugin-streaming.min.js"></script>
+    
     <canvas id="seismicChart" width="100%" height="250"></canvas>
 
     <script>
-        const MAX_POINTS = 3000;
-        const SPS = 50; // Sample per second (25 data points setiap 0,5 detik = 50 SPS)
-        const POINTS_PER_BATCH = 25; // Jumlah data point per batch dari sensor
+        const SPS = 50; // Sample per second
+        const DURATION = 60; // Duration in seconds to show on chart
+        const REFRESH_RATE = 50; // Chart refresh rate in ms
+        const TIME_STEP = 20; // Time step per data point in ms (1000/SPS)
+        const DATA_TIMEOUT = 1000; // Timeout dalam ms untuk mendeteksi data berhenti masuk
 
-        // Initialize with data from the database
-        const initialData = @json($initialData);
-        const initialReadingTimes = @json($initialReadingTimes);
-        
         let chart = null;
-        let dataBuffer = [];
-        let indexBuffer = [];
-        let nextInsertIndex = 0;
-        let baseTime = null;
-        let firstDataIndex = null;
-        let isInitialized = false;
-        let lastUpdateTime = null;
-        let hasHistoricalData = false;
-        let totalDataPoints = 0; // Track total data points received
-
+        let lastTimestamp;
+        let dataStarted = false; // Flag untuk menandai apakah data sudah mulai masuk
+        let zeroDataInterval; // Interval untuk menambahkan data nol
+        let lastDataReceivedTime = null; // Waktu terakhir data diterima
+        let dataCheckInterval; // Interval untuk memeriksa apakah data masih masuk
+        
         function initChart() {
             const ctx = document.getElementById('seismicChart').getContext('2d');
 
-            // Initialize data buffers with historical data if available
-            if (initialData && initialData.length > 0) {
-                console.log(`Initializing chart with ${initialData.length} historical data points`);
-                
-                // Validasi data historis
-                if (Array.isArray(initialData) && initialData.every(item => typeof item === 'number')) {
-                    // Inisialisasi buffer dengan MAX_POINTS
-                    dataBuffer = Array(MAX_POINTS).fill(0);
-                    indexBuffer = Array.from({ length: MAX_POINTS }, (_, i) => i);
-                    
-                    // Track total data points
-                    totalDataPoints = initialData.length;
-                    
-                    // Masukkan data historis ke buffer, mulai dari kanan
-                    // If data exceeds MAX_POINTS, only take the most recent MAX_POINTS
-                    const startIndex = Math.max(0, MAX_POINTS - initialData.length);
-                    const dataToUse = initialData.length > MAX_POINTS 
-                        ? initialData.slice(initialData.length - MAX_POINTS) 
-                        : initialData;
-                    
-                    for (let i = 0; i < dataToUse.length; i++) {
-                        dataBuffer[startIndex + i] = dataToUse[i];
-                    }
-                    
-                    nextInsertIndex = MAX_POINTS;
-                    
-                    isInitialized = true;
-                    hasHistoricalData = true;
-                    lastUpdateTime = Date.now();
-                    
-                    console.log(`Initialized with ${dataToUse.length} points, total data points: ${totalDataPoints}`);
-                } else {
-                    console.warn('Historical data is not in the expected format, initializing with zeros');
-                    initializeWithZeros();
-                }
-            } else {
-                console.log('No historical data available, initializing with zeros');
-                initializeWithZeros();
+            // Inisialisasi data awal dengan y=0
+            const now = Date.now();
+            lastTimestamp = now; // Set lastTimestamp ke waktu sekarang
+            lastDataReceivedTime = now; // Inisialisasi waktu terakhir data diterima
+            const initialData = [];
+            
+            // Buat titik data awal untuk mengisi chart
+            for (let i = DURATION; i > 0; i--) {
+                initialData.push({
+                    x: now - i * 1000, // Titik data dari DURATION detik lalu sampai sekarang
+                    y: 0               // Semua nilai awal diatur ke 0
+                });
             }
-
+            
             chart = new Chart(ctx, {
                 type: 'line',
                 data: {
                     datasets: [{
                         label: 'Seismic Waveform',
-                        data: indexBuffer.map((x, i) => ({ x, y: dataBuffer[i] })),
+                        data: initialData,  // Gunakan data awal yang sudah dibuat
                         borderColor: 'rgb(75, 192, 192)',
                         tension: 0.1,
                         pointRadius: 0,
@@ -81,19 +52,30 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    animation: {
-                        duration: 50
+                    plugins: {
+                        legend: { display: false }
                     },
                     scales: {
                         x: {
-                            type: 'linear',
-                            min: 0,
-                            max: MAX_POINTS,
-                            title: {
-                                display: false
+                            type: 'realtime',
+                            realtime: {
+                                duration: DURATION * 1000,
+                                refresh: REFRESH_RATE,
+                                delay: 0,
+                                onRefresh: function(chart) {
+                                    // This space is left intentionally empty
+                                    // Data is added via the WebSocket instead
+                                }
                             },
-                            ticks: {
-                                display: false
+                            time: {
+                                unit: 'second',
+                                displayFormats: {
+                                    second: 'HH:mm:ss'
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Time (HH:mm:ss)'
                             }
                         },
                         y: {
@@ -102,56 +84,93 @@
                                 text: 'ADC Counts'
                             }
                         }
-                    },
-                    plugins: {
-                        legend: { display: false }
                     }
                 }
             });
 
+            console.log('Streaming chart initialized');
             setupWebSocket();
+            setupDataMonitoring();
         }
 
-        function initializeWithZeros() {
-            dataBuffer = Array(MAX_POINTS).fill(0);
-            indexBuffer = Array.from({ length: MAX_POINTS }, (_, i) => i);
-            nextInsertIndex = MAX_POINTS;
-            lastUpdateTime = Date.now();
-            totalDataPoints = 0;
+        function setupDataMonitoring() {
+            // Set interval untuk memeriksa apakah data masih masuk
+            dataCheckInterval = setInterval(() => {
+                const now = Date.now();
+                
+                // Jika data pernah diterima, dan sudah lewat DATA_TIMEOUT tanpa data baru
+                if (dataStarted && (now - lastDataReceivedTime > DATA_TIMEOUT)) {
+                    // Hitung berapa banyak titik data 0 yang perlu ditambahkan
+                    const timeGap = now - lastDataReceivedTime;
+                    const pointsToAdd = Math.floor(timeGap / TIME_STEP);
+                    
+                    if (pointsToAdd > 0) {
+                        console.log(`Data tidak masuk selama ${timeGap}ms, menambahkan ${pointsToAdd} titik data 0`);
+                        
+                        // Tambahkan titik data 0 untuk mengisi celah
+                        for (let i = 0; i < pointsToAdd; i++) {
+                            const timestamp = lastTimestamp + (i * TIME_STEP);
+                            chart.data.datasets[0].data.push({
+                                x: timestamp,
+                                y: 0
+                            });
+                        }
+                        
+                        // Perbarui lastTimestamp
+                        lastTimestamp += pointsToAdd * TIME_STEP;
+                    }
+                    
+                    // Perbarui lastDataReceivedTime
+                    lastDataReceivedTime = now;
+                }
+            }, DATA_TIMEOUT / 2); // Periksa 2 kali lebih cepat dari timeout
         }
-
+        
         function setupWebSocket() {
+            // Tambahkan interval untuk terus menambahkan data nol sampai data nyata tiba
+            zeroDataInterval = setInterval(() => {
+                if (!dataStarted) {
+                    const now = Date.now();
+                    // Tambahkan titik data nol baru
+                    chart.data.datasets[0].data.push({
+                        x: now,
+                        y: 0
+                    });
+                    lastTimestamp = now;
+                }
+            }, 200); // Update setiap 200ms
+            
             window.Echo.channel('seismic-data')
                 .listen('.NewSeismicDataReceived', (e) => {
                     if (e.reading && e.reading.adc_counts) {
                         try {
                             const newDataChunk = JSON.parse(e.reading.adc_counts);
 
-                            if (Array.isArray(newDataChunk) && newDataChunk.length === POINTS_PER_BATCH) {
-                                // Aktifkan setelah data pertama jika belum diinisialisasi
-                                if (!isInitialized) {
-                                    baseTime = Date.now();
-                                    firstDataIndex = 0;
-                                    isInitialized = true;
-                                    console.log('Chart initialized with real-time data');
+                            if (Array.isArray(newDataChunk) && newDataChunk.length > 0) {
+                                // Jika ini adalah batch data pertama yang masuk
+                                if (!dataStarted) {
+                                    dataStarted = true;
+                                    clearInterval(zeroDataInterval); // Hentikan penambahan data nol
+                                    console.log('Data streaming dimulai');
                                 }
-
-                                // Update total data points
-                                totalDataPoints += newDataChunk.length;
                                 
-                                // Geser buffer ke kiri dan tambahkan data baru
-                                dataBuffer = [...dataBuffer.slice(POINTS_PER_BATCH), ...newDataChunk];
+                                // Update waktu terakhir data diterima
+                                lastDataReceivedTime = Date.now();
                                 
-                                // Update chart dan catat waktu update
-                                updateChart();
-                                lastUpdateTime = Date.now();
-                                
-                                // Log progress periodically
-                                if (totalDataPoints % 1000 === 0) {
-                                    console.log(`Total data points processed: ${totalDataPoints}`);
+                                // Add each data point with its own timestamp
+                                for (let i = 0; i < newDataChunk.length; i++) {
+                                    const timestamp = lastTimestamp + (i * TIME_STEP);
+                                    
+                                    chart.data.datasets[0].data.push({
+                                        x: timestamp,
+                                        y: newDataChunk[i]
+                                    });
                                 }
-                            } else {
-                                console.warn(`Received unexpected data format: ${newDataChunk.length} points (expected ${POINTS_PER_BATCH})`);
+                                
+                                // Update lastTimestamp for the next chunk
+                                lastTimestamp += newDataChunk.length * TIME_STEP;
+                                
+                                // No need to call chart.update() - the plugin handles it
                             }
                         } catch (err) {
                             console.error("Error parsing adc_counts:", err);
@@ -160,19 +179,18 @@
                 });
         }
 
-        function updateChart() {
-            if (!chart) return;
-
-            chart.data.datasets[0].data = indexBuffer.map((x, i) => ({
-                x: x,
-                y: dataBuffer[i]
-            }));
-
-            chart.update('none');
-        }
-
         document.addEventListener('DOMContentLoaded', function () {
             initChart();
+            
+            // Tambahkan penanganan untuk membersihkan interval jika halaman ditutup
+            window.addEventListener('beforeunload', function() {
+                if (zeroDataInterval) {
+                    clearInterval(zeroDataInterval);
+                }
+                if (dataCheckInterval) {
+                    clearInterval(dataCheckInterval);
+                }
+            });
         });
     </script>
 </div>

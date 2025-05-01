@@ -3,7 +3,7 @@ import json
 import time
 import random
 import numpy as np
-from datetime import datetime
+from datetime import datetime, timezone
 import ssl
 import os
 
@@ -79,7 +79,7 @@ def main():
         while True:
             # Generate simulated data
             adc_counts = generate_seismic_data(samples=25)
-            reading_times = datetime.now().isoformat()
+            reading_times = datetime.utcnow().isoformat(timespec='milliseconds') + 'Z'
             
             # Create payload
             payload = {

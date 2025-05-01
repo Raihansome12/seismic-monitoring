@@ -17,7 +17,7 @@ class SeismicDataDisplay extends Component
 
     public $initialData = [];
     public $initialReadingTimes = [];
-    const MAX_POINTS = 30000; // Sesuaikan dengan konstanta di JavaScript
+    const MAX_POINTS = 3000; // Sesuaikan dengan konstanta di JavaScript
     const POINTS_PER_BATCH = 25; // Jumlah data point per batch dari sensor
 
     public function mount()
