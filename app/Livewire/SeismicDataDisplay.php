@@ -16,16 +16,18 @@ class SeismicDataDisplay extends Component
 
     public $readings = [];
     
+    const DURATION = 15; // in seconds
+    
     public function mount()
     {
-        // When component loads, get the latest readings (last 20 seconds)
+        // When component loads, get the latest readings
         $this->loadInitialData();
     }
     
     public function loadInitialData()
     {
-        // Get readings from the last 20 seconds (matching chart duration)
-        $cutoffTime = Carbon::now()->subSeconds(30);
+        // Get readings from the last n seconds (matching chart duration)
+        $cutoffTime = Carbon::now()->subSeconds(self::DURATION);
         
         $this->readings = SeismicReading::where('reading_times', '>=', $cutoffTime)
             ->orderBy('reading_times', 'asc')

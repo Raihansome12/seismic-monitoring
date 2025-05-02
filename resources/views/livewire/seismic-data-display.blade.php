@@ -8,7 +8,7 @@
     <script>
         // Define constants first
         const SPS = 50;
-        const DURATION = 30;
+        const DURATION = 15; // in seconds
         const REFRESH_RATE = 50;
         const TIME_STEP = 1000 / SPS;
         const DATA_TIMEOUT = 1000;
@@ -88,7 +88,7 @@
                         label: 'Seismic Waveform',
                         data: initialData.length ? initialData : [],
                         borderColor: 'rgb(75, 192, 192)',
-                        tension: 0.1,
+                        tension: 0,
                         pointRadius: 0,
                         borderWidth: 1,
                         fill: false
@@ -111,6 +111,9 @@
                                 duration: DURATION * 1000,
                                 refresh: REFRESH_RATE,
                                 delay: 0,
+                                ttl: DURATION * 1000, // time-to-live
+                                maxDataLength: DURATION * SPS, // total data
+                                pause: false,
                                 onRefresh: function () { }
                             },
                             time: {
@@ -182,6 +185,8 @@
                                 }
 
                                 lastTimestamp += newDataChunk.length * TIME_STEP;
+
+                                chart.update('none');
                             }
                         } catch (err) {
                             console.error("Error parsing adc_counts:", err);
