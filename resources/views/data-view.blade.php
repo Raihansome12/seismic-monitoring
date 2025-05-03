@@ -3,7 +3,7 @@
     <div class="bg-white rounded-lg shadow p-6">
         <div class="flex justify-between items-center border-b border-gray-300 pb-4">
             {{-- Konfigurasi Channel --}}
-            <x-config></x-config>
+            <x-config :isStreaming="$isStreaming"></x-config>
 
             {{-- Menu Download --}}
             @livewire('data-downloader')

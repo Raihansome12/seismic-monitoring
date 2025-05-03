@@ -8,8 +8,8 @@
     <script>
         // Define constants first
         const SPS = 50;
-        const DURATION = 15; // in seconds
-        const REFRESH_RATE = 50;
+        const DURATION = {{ $duration }}; // in seconds
+        const REFRESH_RATE = 500;
         const TIME_STEP = 1000 / SPS;
         const DATA_TIMEOUT = 1000;
 
@@ -42,7 +42,7 @@
                     for (let i = 1; i <= gapPoints; i++) {
                         initialData.push({
                             x: previousTimestamp + (i * TIME_STEP),
-                            y: 0
+                            y: null
                         });
                     }
                     
@@ -118,7 +118,9 @@
                             },
                             time: {
                                 unit: 'second',
+                                stepSize: 30,
                                 displayFormats: {
+                                    minute: 'HH:mm:ss',
                                     second: 'HH:mm:ss'
                                 }
                             },
@@ -204,6 +206,7 @@
                     const pointsToAdd = Math.floor(timeGap / TIME_STEP);
 
                     if (pointsToAdd > 0) {
+                        // Add zero point for the gap
                         for (let i = 0; i < pointsToAdd; i++) {
                             const timestamp = lastTimestamp + (i * TIME_STEP);
                             chart.data.datasets[0].data.push({

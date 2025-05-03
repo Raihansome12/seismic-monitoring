@@ -15,13 +15,15 @@ class SeismicDataDisplay extends Component
     ];
 
     public $readings = [];
+    public $duration = 60;
     
-    const DURATION = 15; // in seconds
+    const DURATION = 10; // in seconds
     
     public function mount()
     {
         // When component loads, get the latest readings
         $this->loadInitialData();
+        $this->duration = self::DURATION;
     }
     
     public function loadInitialData()
@@ -44,7 +46,7 @@ class SeismicDataDisplay extends Component
     public function render()
     {
         return view('livewire.seismic-data-display', [
-            'readings' => $this->readings
+            'readings' => $this->readings,
         ]);
     }
 }  
