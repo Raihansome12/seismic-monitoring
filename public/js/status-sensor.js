@@ -24,4 +24,4 @@ async function checkSensorStatus() {
 checkSensorStatus();
 
 // Cek status setiap 5 detik
-setInterval(checkSensorStatus, 5000);
+setInterval(checkSensorStatus, 1000);

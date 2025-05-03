@@ -7,5 +7,5 @@ use App\Http\Controllers\TimeController;
 
 Route::get('/', [SeismicController::class, 'index'])->name('data-view');
 Route::get('/quality', [SeismicController::class, 'quality'])->name('quality');
-Route::get('/time', [TimeController::class, 'getTime']);
 Route::get('/sensor-status', [SeismicController::class, 'getSensorStatus']);
+Route::get('/time', [TimeController::class, 'getTime']);

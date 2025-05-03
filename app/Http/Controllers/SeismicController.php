@@ -11,23 +11,22 @@ class SeismicController extends Controller
     public function index()
     {
         $title = 'View';
-        $isStreaming = $this->checkStreamingStatus();
-        return view('data-view', compact('title', 'isStreaming'));
+        return view('data-view', compact('title'));
     }
     
     public function quality()
     {
         $title = 'Quality';
-        $isStreaming = $this->checkStreamingStatus();
-        return view('quality', compact('title', 'isStreaming'));
+        return view('quality', compact('title'));
     }
 
-    private function checkStreamingStatus()
+    public function getSensorStatus()
     {
-        // Check if there's any data in the last 5 minutes
-        $fiveMinutesAgo = Carbon::now()->subMinutes(5);
-        $recentData = SeismicReading::where('reading_times', '>=', $fiveMinutesAgo)->exists();
-        
-        return $recentData;
+        // Ambil data 10 detik terakhir
+        $tenSecondsAgo = Carbon::now()->subSeconds(10);
+
+        $isStreaming = SeismicReading::where('reading_times', '>=', $tenSecondsAgo)->exists();
+
+        return response()->json(['isStreaming' => $isStreaming]);
     }
 }
