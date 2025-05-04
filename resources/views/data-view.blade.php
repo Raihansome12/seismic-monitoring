@@ -6,7 +6,7 @@
             <x-config></x-config>
 
             {{-- Menu Download --}}
-            @livewire('data-downloader')
+            <x-data-downloader></x-data-downloader>
         
         </div>
         {{-- Seismic Trace --}}

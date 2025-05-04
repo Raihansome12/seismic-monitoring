@@ -5,7 +5,7 @@
     <span class="text-gray-500">|</span>
     <span class="text-gray-900">Real<span class="text-red-600">Time</span></span>
 
-    <div id="streaming" class="flex items-center px-3 py-1/2 border-2 border-green-500 rounded-full">
+    <div id="streaming" class="flex hidden items-center px-3 py-1/2 border-2 border-green-500 rounded-full">
         <span class="w-2.5 h-2.5 bg-red-600 rounded-full animate-blink mr-2"></span>
         <span class="text-green-500">streaming</span>
     </div>

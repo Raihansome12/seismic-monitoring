@@ -118,7 +118,7 @@
                             },
                             time: {
                                 unit: 'second',
-                                stepSize: 30,
+                                stepSize: 1,
                                 displayFormats: {
                                     minute: 'HH:mm:ss',
                                     second: 'HH:mm:ss'
