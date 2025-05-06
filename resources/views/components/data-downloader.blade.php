@@ -25,10 +25,10 @@
                             <div class="text-sm text-gray-500">Total Recording: {{ count(session('sessions', [])) }}</div>
                         </div>
                         {{-- Scrollable Table Container --}}
-                        <div class="overflow-y-auto max-h-56">
+                        <div class="overflow-y-auto max-h-56 border-t border-gray-300">
                             <table class="table-auto w-full text-gray-900">  
                                 <thead>
-                                    <tr class="text-center font-bold text-gray-900 border-t border-gray-300">
+                                    <tr class="text-center font-bold text-gray-900">
                                         <th class="py-3">Session</th>
                                         <th class="py-3">Start Time</th>
                                         <th class="py-3">End Time</th>
@@ -37,12 +37,14 @@
                                 </thead>
                                 <tbody class="text-sm">
                                     @foreach (session('sessions', []) as $session)
-                                        <tr class="text-center bg-gray-100">
+                                        <tr class="text-center {{ $loop->odd ? 'bg-gray-100' : 'bg-white' }}">
                                             <td class="py-3">{{ $session['session_name'] }}</td>
                                             <td class="py-3">{{ $session['start_time'] }}</td>
                                             <td class="py-3">{{ $session['end_time'] }}</td>
                                             <td class="py-3 flex items-center justify-center">
-                                                <a href=""><img src="img/download.png" alt="Download" class="w-4 h-4"></a>
+                                                <a href="{{ route('mseed.download', ['start_time' => $session['start_time'], 'end_time' => $session['end_time']]) }}">
+                                                    <img src="img/download.png" alt="Download" class="w-4 h-4">
+                                                </a>
                                             </td>
                                         </tr>
                                     @endforeach

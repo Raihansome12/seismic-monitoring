@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Models\SeismicReading;
+use Illuminate\Support\Facades\Log;
 
 class DataDownloadController extends Controller
 {
@@ -16,23 +17,35 @@ class DataDownloadController extends Controller
         $currentSession = [];
         $lastTime = null;
         $sessionIndex = 1;
-        $maxIntervalSeconds = 0.6;
+        $maxIntervalSeconds = 1;
 
         foreach ($data as $row) {
             $currentTime = Carbon::parse($row->reading_times);
 
-            if ($lastTime) {
-                $diff = $currentTime->floatDiffInSeconds($lastTime);
+            if ($lastTime) {        
+                // Use absolute value for time difference
+                $diff = abs($currentTime->floatDiffInSeconds($lastTime));
+                
+                // If gap is more than maxIntervalSeconds, finalize current session
                 if ($diff > $maxIntervalSeconds) {
-                    // Simpan sesi saat ini ke dalam array sessions
-                    $sessions[] = [
-                        'session_name' => 'SESI ' . $this->convertToRoman($sessionIndex),
-                        'start_time' => $currentSession[0]->reading_times->format('y:m:d H:i:s'),
-                        'end_time' => end($currentSession)->reading_times->format('y:m:d H:i:s'),
-                    ];
+                    if (!empty($currentSession)) {
+                        $start = Carbon::parse($currentSession[0]->reading_times);
+                        $end = Carbon::parse(end($currentSession)->reading_times);
+                        $duration = $start->diffInSeconds($end);
 
-                    $sessionIndex++;
-                    $currentSession = [];
+                        if($duration >= 60) {
+                            $sessions[] = [
+                                'session_name' => 'SESI ' . $this->convertToRoman($sessionIndex),
+                                'start_time' => $start->format('Y-m-d H:i:s'),
+                                'end_time' => $end->format('Y-m-d H:i:s'),
+                            ];
+                            $sessionIndex++;
+                        }
+                    }
+                    // Start new session with current row
+                    $currentSession = [$row];
+                    $lastTime = $currentTime;
+                    // continue;
                 }
             }
 
@@ -40,18 +53,23 @@ class DataDownloadController extends Controller
             $lastTime = $currentTime;
         }
 
-        // Simpan sesi terakhir
+        // Handle the last session
         if (!empty($currentSession)) {
-            $sessions[] = [
-                'session_name' => 'SESI ' . $this->convertToRoman($sessionIndex),
-                'start_time' => $currentSession[0]->reading_times->format('y:m:d H:i:s'),
-                'end_time' => end($currentSession)->reading_times->format('y:m:d H:i:s'),
-            ];
+            $start = Carbon::parse($currentSession[0]->reading_times);
+            $end = Carbon::parse(end($currentSession)->reading_times);
+            $duration = $start->diffInSeconds($end);
+
+            if ($duration >= 60) {
+                $sessions[] = [
+                    'session_name' => 'SESI ' . $this->convertToRoman($sessionIndex),
+                    'start_time' => $start->format('Y-m-d H:i:s'),
+                    'end_time' => $end->format('Y-m-d H:i:s'),
+                ];
+            }
         }
 
-        // Store sessions in session
+        // session()->forget('sessions');
         session(['sessions' => $sessions]);
-
         return $sessions;
     }
 

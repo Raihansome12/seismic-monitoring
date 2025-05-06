@@ -6,7 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Models\SeismicReading;
 
-class GetStatus extends Controller
+class GetStatusController extends Controller
 {
     public function getSensorStatus()
     {

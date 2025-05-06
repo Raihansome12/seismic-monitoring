@@ -12,8 +12,10 @@ class SeismicController extends Controller
     public function index()
     {
         $title = 'View';
+
         $dataDownloadController = new DataDownloadController();
-        $dataDownloadController->detectSessions();
+        $sessions = $dataDownloadController->detectSessions();
+        
         return view('data-view', compact('title'));
     }
     
