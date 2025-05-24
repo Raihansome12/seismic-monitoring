@@ -1,5 +1,5 @@
 <div class="flex items-center space-x-4">
-    <span class="font-semibold text-gray-900">IA.STMKG..SHZ</span>
+    <span class="font-semibold text-gray-900">IA.STMKG.00.SHZ</span>
     <span class="text-gray-500">|</span>
     <span class="text-gray-700">50 sps</span>
     <span class="text-gray-500">|</span>

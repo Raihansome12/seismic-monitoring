@@ -15,6 +15,6 @@ class GpsLocation extends Model
     ];
 
     protected $casts = [
-        'reading_times' => 'timestamp',
+        'reading_times' => 'datetime',
     ];
 }

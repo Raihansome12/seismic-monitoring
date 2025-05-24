@@ -4,23 +4,25 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class MseedFile extends Model
+class PpsdFile extends Model
 {
-    protected $table = 'mseed_files';
+    protected $table = 'ppsd_files';
 
     protected $fillable = [
+        'mseed_file_id',
         'filename',
         'start_time',
         'end_time',
         'content',
     ];
 
-    protected $cast = [
+    protected $casts = [
         'start_time' => 'datetime',
         'end_time' => 'datetime',
     ];
 
-    public function details(){
-        return $this->hasOne(PpsdFile::class, 'mseed_file_id');
+    public function mseedFile()
+    {
+        return $this->belongsTo(MseedFile::class, 'mseed_file_id');
     }
 }

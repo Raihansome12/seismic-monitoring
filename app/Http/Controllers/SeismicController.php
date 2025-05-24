@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Carbon\Carbon;
+use App\Models\PpsdFile;
 use Illuminate\Http\Request;
 use App\Models\SeismicReading;
 use App\Http\Controllers\DataDownloadController;
@@ -22,6 +23,10 @@ class SeismicController extends Controller
     public function quality()
     {
         $title = 'Quality';
-        return view('quality', compact('title'));
+        
+        // Get the latest PPSD file
+        $ppsdFile = PpsdFile::latest()->first();
+        
+        return view('quality', compact('title', 'ppsdFile'));
     }
 }
