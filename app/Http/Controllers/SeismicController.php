@@ -23,8 +23,7 @@ class SeismicController extends Controller
     public function quality()
     {
         $title = 'Quality';
-        
-        // Get the latest PPSD file
+
         $ppsdFile = PpsdFile::latest()->first();
         
         return view('quality', compact('title', 'ppsdFile'));
