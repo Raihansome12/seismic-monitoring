@@ -118,7 +118,7 @@
                             },
                             time: {
                                 unit: 'second',
-                                stepSize: 1,
+                                stepSize: 60, // label scale in second
                                 displayFormats: {
                                     minute: 'HH:mm:ss',
                                     second: 'HH:mm:ss'
