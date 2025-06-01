@@ -28,12 +28,12 @@
                                     <tr class="border-t-2 border-blue-500">
                                         <td>Start Time Record</td>
                                         <td>:</td>
-                                        <td class="text-left">{{ $ppsdFile->start_time->format('Y-m-d H:i:s') }} UTC+7</td>
+                                        <td class="text-left">{{ $ppsdFile->start_time->format('Y-m-d H:i:s') }} UTC</td>
                                     </tr>
                                     <tr class="border-t-2 border-green-500">
                                         <td>End Time Record</td>
                                         <td>:</td>
-                                        <td class="text-left">{{ $ppsdFile->end_time->format('Y-m-d H:i:s') }} UTC+7</td>
+                                        <td class="text-left">{{ $ppsdFile->end_time->format('Y-m-d H:i:s') }} UTC</td>
                                     </tr>
                                 </tbody>
                             </table>
