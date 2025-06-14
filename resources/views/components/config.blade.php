@@ -14,8 +14,23 @@
         <span class="text-red-500">offline</span>
     </div>
 
-    <script src="{{ asset('js/status-sensor.js') }}"></script>
+    <div id="latency" class="px-3 py-1/2 border-2 border-blue-500 rounded-full">
+        <span class="text-blue-500">Latency: <span id="latency-value">0</span> ms</span>
+    </div>
 
+    <script src="{{ asset('js/status-sensor.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Subscribe to latency channel
+            Echo.channel('latency')
+                .listen('.NewLatencyDataReceived', (e) => {
+                    const latencyValue = document.getElementById('latency-value');
+                    if (latencyValue) {
+                        latencyValue.textContent = e.latency;
+                    }
+                });
+        });
+    </script>
 </div>
 
 

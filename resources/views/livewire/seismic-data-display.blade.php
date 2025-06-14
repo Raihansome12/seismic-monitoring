@@ -118,7 +118,7 @@
                             },
                             time: {
                                 unit: 'second',
-                                stepSize: 60, // label scale in second
+                                stepSize: 30, // label scale in second
                                 displayFormats: {
                                     minute: 'HH:mm:ss',
                                     second: 'HH:mm:ss'
@@ -175,18 +175,33 @@
                                     clearInterval(zeroDataInterval);
                                     console.log('Data streaming dimulai');
                                 }
+                                // lastDataReceivedTime = Date.now();
 
-                                lastDataReceivedTime = Date.now();
+                                // for (let i = 0; i < newDataChunk.length; i++) {
+                                //     const timestamp = lastTimestamp + (i * TIME_STEP);
+                                //     chart.data.datasets[0].data.push({
+                                //         x: timestamp,
+                                //         y: newDataChunk[i]
+                                //     });
+                                // }
+
+                                // lastTimestamp += newDataChunk.length * TIME_STEP;
+
+                                // chart.update('none');
+                                const now = Date.now();
+                                const newPoints = [];
 
                                 for (let i = 0; i < newDataChunk.length; i++) {
-                                    const timestamp = lastTimestamp + (i * TIME_STEP);
-                                    chart.data.datasets[0].data.push({
-                                        x: timestamp,
+                                    newPoints.push({
+                                        x: now + i * TIME_STEP,
                                         y: newDataChunk[i]
                                     });
                                 }
 
-                                lastTimestamp += newDataChunk.length * TIME_STEP;
+                                chart.data.datasets[0].data.push(...newPoints);
+
+                                // Simpan waktu terakhir data diterima
+                                lastDataReceivedTime = Date.now();
 
                                 chart.update('none');
                             }
@@ -205,18 +220,33 @@
                     const timeGap = now - lastDataReceivedTime;
                     const pointsToAdd = Math.floor(timeGap / TIME_STEP);
 
+                    // if (pointsToAdd > 0) {
+                    //     // Add zero point for the gap
+                    //     for (let i = 0; i < pointsToAdd; i++) {
+                    //         const timestamp = lastTimestamp + (i * TIME_STEP);
+                    //         chart.data.datasets[0].data.push({
+                    //             x: timestamp,
+                    //             y: 0
+                    //         });
+                    //     }
+
+                    //     lastTimestamp += pointsToAdd * TIME_STEP;
+                    //     lastDataReceivedTime = now;
+                    // }
                     if (pointsToAdd > 0) {
-                        // Add zero point for the gap
+                        const zeroPoints = [];
+
                         for (let i = 0; i < pointsToAdd; i++) {
-                            const timestamp = lastTimestamp + (i * TIME_STEP);
-                            chart.data.datasets[0].data.push({
-                                x: timestamp,
+                            zeroPoints.push({
+                                x: now + i * TIME_STEP,
                                 y: 0
                             });
                         }
 
-                        lastTimestamp += pointsToAdd * TIME_STEP;
-                        lastDataReceivedTime = now;
+                        chart.data.datasets[0].data.push(...zeroPoints);
+
+                        lastDataReceivedTime = Date.now();
+                        chart.update('none');
                     }
                 }
             }, DATA_TIMEOUT / 2);

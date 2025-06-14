@@ -17,7 +17,7 @@ class SeismicDataDisplay extends Component
     public $readings = [];
     public $duration;
     
-    const DURATION = 600; // in seconds
+    const DURATION = 300; // in seconds
     
     public function mount()
     {

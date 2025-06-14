@@ -9,7 +9,9 @@ use App\Models\SeismicReading;
 use PhpMqtt\Client\Facades\MQTT;
 use App\Events\NewGpsDataReceived;
 use Illuminate\Support\Facades\Log;
+use App\Events\NewLatencyDataReceived;
 use App\Events\NewSeismicDataReceived;
+use Illuminate\Support\Facades\Storage;
 use App\Services\SeismicCalculationService;
 
 class MqttService
@@ -55,6 +57,11 @@ class MqttService
             // Calculate seismic parameters
             $calculations = $this->seismicCalculationService->calculate($adcCounts);
             
+            // Calculate latency with timezone handling
+            $readingTime = Carbon::parse($data['reading_times'])->setTimezone(config('app.timezone'));
+            $currentTime = Carbon::now();
+            $latency = abs($currentTime->diffInMilliseconds($readingTime));
+            
             // Store data in database
             $reading = SeismicReading::create([
                 'adc_counts' => json_encode($data['adc_counts']),
@@ -68,13 +75,23 @@ class MqttService
                 'displacement' => $calculations['pgd'],
             ]);
             
-            // Broadcast event to WebSocket
-            Log::info('Broadcasting new seismic data event', [
-                'reading_id' => $reading->id,
-                'timestamp' => $reading->reading_times
-            ]);
+            // Broadcast events to WebSocket
             broadcast(new NewSeismicDataReceived($reading))->toOthers();
-            Log::info('Seismic data event broadcast completed');
+            broadcast(new NewLatencyDataReceived($latency))->toOthers();
+            
+            // Log::info('Data events broadcast completed', [
+            //     'reading_id' => $reading->id,
+            //     'latency' => $latency
+            // ]);
+
+            // $csvLine = implode(',', [
+            //     now()->toDateTimeString(),
+            //     $reading->id,
+            //     $latency
+            // ]) . "\n";
+
+            // Storage::append('logs/latency.csv', $csvLine);
+
         } catch (\Exception $e) {
             Log::error('Error processing geophone data: ' . $e->getMessage());
         }

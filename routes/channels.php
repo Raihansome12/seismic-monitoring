@@ -13,3 +13,7 @@ Broadcast::channel('seismic-data', function () {
 Broadcast::channel('gps-channel', function () {
     return true;
 });
+
+Broadcast::channel('latency', function () {
+    return true;
+});
